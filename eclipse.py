@@ -9,11 +9,10 @@ from datetime import datetime
 import colorsys
 import math
 from collections import deque
-from pypresence import Presence  # Discord RPC library
+from pypresence import Presence
 import threading
 import queue
 
-# Set appearance mode
 ctk.set_appearance_mode("dark")
 
 class EclipseApp:
@@ -23,11 +22,9 @@ class EclipseApp:
         self.root.geometry("1200x800")
         self.root.configure(bg="#1E1E1E")
         
-        # Set window icon
         if os.path.exists("eclipse.ico"):
             self.root.iconbitmap("eclipse.ico")
         
-        # Theme colors
         self.bg_color = "#1E1E1E"
         self.fg_color = "#2D2D2D"
         self.hover_color = "#4A4A4A"
@@ -35,7 +32,6 @@ class EclipseApp:
         self.border_color = "#404040"
         self.canvas_bg = "white"
         
-        # Drawing state
         self.current_color = "#000000"
         self.brush_size = 5
         self.current_tool = "pencil"
@@ -43,7 +39,6 @@ class EclipseApp:
         self.start_x, self.start_y = None, None
         self.commands = []
         
-        # UI state
         self.color_picker_open = False
         self.details_visible = False
         self.canvas_details_visible = False
@@ -55,66 +50,55 @@ class EclipseApp:
         self.color_wheel_pil = None
         self.canvas_details_var = tk.BooleanVar(value=False)
         
-        # File state
         self.current_file = None
         self.file_name = "Untitled"
         self.file_path = "N/A"
         self.last_edited = "N/A"
         self.file_size = "N/A"
         
-        # Discord RPC setup
         self.discord_rpc = None
         self.rpc_connected = False
         self.rpc_queue = queue.Queue()
         self.rpc_thread = None
         self.rpc_running = True
-        self.client_id = "1373063151297368236"  # Replace with your Discord Application ID
+        self.client_id = "1373063151297368236"
         self.init_discord_rpc()
         
-        # Show splash screen
         self.show_splash_screen()
         self.root.after(3000, self.show_starting_page)
 
     def init_discord_rpc(self):
-        """Initialize Discord RPC connection and start update thread."""
         try:
             self.discord_rpc = Presence(self.client_id)
             self.discord_rpc.connect()
             self.rpc_connected = True
-            print("Discord RPC connected!")
-            # Start a thread to handle RPC updates
             self.rpc_thread = threading.Thread(target=self.rpc_update_loop, daemon=True)
             self.rpc_thread.start()
         except Exception as e:
-            print(f"Discord RPC failed to connect: {e}")
             self.rpc_connected = False
 
     def update_discord_presence(self, details, state, large_image="eclipse", large_text="Eclipse"):
-        """Queue Discord presence update."""
         if self.rpc_connected:
             self.rpc_queue.put({
                 "details": details,
                 "state": state,
                 "large_image": large_image,
                 "large_text": large_text,
-                "start": int(time.time())  # Changed from start_timestamp to start
+                "start": int(time.time())
             })
 
     def rpc_update_loop(self):
-        """Run in a separate thread to update Discord presence."""
         while self.rpc_running:
             try:
                 while not self.rpc_queue.empty():
                     presence_data = self.rpc_queue.get()
                     self.discord_rpc.update(**presence_data)
-                time.sleep(15)  # Discord recommends 15-second intervals
+                time.sleep(15)
             except Exception as e:
-                print(f"Discord RPC update error: {e}")
                 self.rpc_connected = False
                 break
 
     def cleanup_rpc(self):
-        """Clean up Discord RPC on app close."""
         self.rpc_running = False
         if self.rpc_connected:
             try:
@@ -123,7 +107,6 @@ class EclipseApp:
                 pass
 
     def load_logo(self, opacity=1.0):
-        """Load eclipse.png with CTkImage, preserving aspect ratio and applying opacity."""
         logo_path = "eclipse.png"
         if not os.path.exists(logo_path):
             img = Image.new("RGBA", (500, 500), (45, 45, 45, 0))
@@ -138,7 +121,6 @@ class EclipseApp:
         new_size = (int(img_width * ratio), int(img_height * ratio))
         img = img.resize(new_size, Image.Resampling.LANCZOS)
         
-        # Apply opacity
         data = img.getdata()
         new_data = [(r, g, b, int(a * opacity)) for r, g, b, a in data]
         img.putdata(new_data)
@@ -146,7 +128,6 @@ class EclipseApp:
         return ctk.CTkImage(img, size=new_size)
 
     def load_color_wheel(self):
-        """Load or generate a color wheel image."""
         color_wheel_path = "colorwheel.png"
         if not os.path.exists(color_wheel_path):
             img = Image.new("RGB", (200, 200), color="#2D2D2D")
@@ -165,7 +146,6 @@ class EclipseApp:
         return img
 
     def show_splash_screen(self):
-        """Display a splash screen with fade-in animation."""
         self.splash_frame = ctk.CTkFrame(self.root, fg_color=self.bg_color)
         self.splash_frame.pack(fill="both", expand=True)
         
@@ -188,7 +168,6 @@ class EclipseApp:
         self.update_discord_presence("On Splash Screen", "Starting Eclipse", "logo", "Eclipse")
 
     def show_starting_page(self):
-        """Display start page with logo as background."""
         self.splash_frame.destroy()
         self.start_frame = ctk.CTkFrame(self.root, fg_color=self.bg_color)
         self.start_frame.pack(fill="both", expand=True)
@@ -232,11 +211,9 @@ class EclipseApp:
         self.update_discord_presence("On Start Page", "Ready to Create", "logo", "Eclipse")
 
     def setup_main_ui(self):
-        """Set up main UI with enhanced spacing."""
         self.main_frame = ctk.CTkFrame(self.root, fg_color=self.bg_color)
         self.main_frame.pack(fill="both", expand=True, padx=30, pady=30)
         
-        # Menubar
         self.menubar = tk.Menu(self.root, bg=self.fg_color, fg=self.text_color,
                               activebackground=self.hover_color, activeforeground=self.text_color)
         self.root.config(menu=self.menubar)
@@ -250,7 +227,6 @@ class EclipseApp:
         ]:
             file_menu.add_command(label=label, command=command)
         
-        # Context menu
         self.context_menu = tk.Menu(
             self.root, tearoff=0, bg=self.fg_color, fg=self.text_color,
             activebackground=self.hover_color, activeforeground=self.text_color
@@ -258,7 +234,6 @@ class EclipseApp:
         self.context_menu.add_command(label="Change Color", command=self.toggle_color_picker)
         self.context_menu.add_command(label="Change Brush Size", command=self.prompt_brush_size)
         
-        # Toolbar
         self.toolbar = ctk.CTkFrame(self.main_frame, fg_color=self.fg_color, corner_radius=5)
         self.toolbar.pack(side="left", fill="y", padx=15, pady=15)
         
@@ -280,7 +255,6 @@ class EclipseApp:
             if tool == "brush":
                 btn.bind("<Button-3>", lambda e: self.context_menu.post(e.x_root, e.y_root))
         
-        # Color button and brush size
         self.color_button = ctk.CTkButton(
             self.toolbar, text="🎨\nColor", command=self.toggle_color_picker,
             fg_color=self.fg_color, hover_color=self.hover_color, text_color=self.text_color,
@@ -298,7 +272,6 @@ class EclipseApp:
         self.brush_slider.set(self.brush_size)
         self.brush_slider.pack(pady=8, padx=8)
         
-        # Canvas
         self.canvas_frame = ctk.CTkFrame(self.main_frame, fg_color=self.fg_color, corner_radius=5)
         self.canvas_frame.pack(side="left", fill="both", expand=True, padx=20, pady=20)
         
@@ -308,7 +281,6 @@ class EclipseApp:
         )
         self.canvas.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Color picker
         self.color_picker_frame = ctk.CTkFrame(self.main_frame, fg_color=self.fg_color, corner_radius=5, width=250)
         color_picker_inner = ctk.CTkFrame(self.color_picker_frame, fg_color=self.fg_color)
         color_picker_inner.pack(padx=10, pady=10)
@@ -344,7 +316,6 @@ class EclipseApp:
         
         self.color_picker_frame.pack_forget()
         
-        # Canvas details
         self.canvas_details_switch = ctk.CTkSwitch(
             self.main_frame, text="Show Details", command=self.toggle_canvas_details,
             fg_color=self.fg_color, progress_color=self.text_color, text_color=self.text_color,
@@ -358,16 +329,13 @@ class EclipseApp:
         )
         self.canvas_details_label.place_forget()
         
-        # Bind mouse events
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_motion)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         
-        # Update Discord presence to show initial canvas state
         self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def toggle_details(self):
-        """Toggle details label visibility."""
         self.details_visible = not self.details_visible
         if self.details_visible:
             self.details_label.place(relx=0.5, rely=0.85, anchor="center")
@@ -375,7 +343,6 @@ class EclipseApp:
             self.details_label.place_forget()
 
     def toggle_canvas_details(self):
-        """Toggle canvas details label visibility."""
         self.canvas_details_visible = not self.canvas_details_visible
         if self.canvas_details_visible:
             self.canvas_details_label.configure(text=self.get_canvas_details())
@@ -384,7 +351,6 @@ class EclipseApp:
             self.canvas_details_label.place_forget()
 
     def toggle_color_picker(self):
-        """Toggle color picker frame."""
         self.color_picker_open = not self.color_picker_open
         if self.color_picker_open:
             self.color_picker_frame.pack(side="right", fill="y", padx=15, pady=15)
@@ -396,7 +362,6 @@ class EclipseApp:
             self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def start_new_canvas(self):
-        """Switch to main canvas view."""
         self.start_frame.destroy()
         self.current_file = None
         self.file_name = "Untitled"
@@ -406,7 +371,6 @@ class EclipseApp:
         self.setup_main_ui()
 
     def back_to_start(self):
-        """Go back to starting page."""
         if self.main_frame:
             self.main_frame.destroy()
             self.menubar.destroy()
@@ -422,7 +386,6 @@ class EclipseApp:
             self.show_starting_page()
 
     def select_tool(self, tool):
-        """Select current tool."""
         self.current_tool = tool
         self.canvas.bind("<Button-1>", self.place_text if tool == "text" else self.on_press)
         self.canvas.bind("<ButtonPress-1>", self.on_press)
@@ -431,7 +394,6 @@ class EclipseApp:
         self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def place_text(self, event):
-        """Place text on canvas."""
         text = simpledialog.askstring("Input", "Enter text:", parent=self.root)
         if text:
             coords = (event.x, event.y)
@@ -444,7 +406,6 @@ class EclipseApp:
             })
 
     def flood_fill(self, image, x, y, fill_color, tolerance=10):
-        """Perform flood fill on PIL image with tolerance for better matching."""
         if not (0 <= x < image.width and 0 <= y < image.height):
             return image
         target_color = image.getpixel((x, y))
@@ -466,13 +427,11 @@ class EclipseApp:
         return image
 
     def on_press(self, event):
-        """Handle mouse press."""
         if self.current_tool in ["pencil", "brush", "eraser", "line", "rectangle", "ellipse"]:
             self.start_x, self.start_y = event.x, event.y
             self.last_x, self.last_y = event.x, event.y
 
     def on_motion(self, event):
-        """Handle mouse motion."""
         if self.last_x is None or self.last_y is None:
             return
         if self.current_tool == "pencil":
@@ -507,7 +466,6 @@ class EclipseApp:
         self.last_x, self.last_y = event.x, event.y
 
     def on_release(self, event):
-        """Handle mouse release."""
         if self.start_x is None or self.start_y is None:
             return
         if self.current_tool == "line":
@@ -551,7 +509,6 @@ class EclipseApp:
         self.start_x, self.start_y = None, None
 
     def pick_color_from_wheel(self, event):
-        """Pick color from color wheel."""
         x, y = event.x, event.y
         try:
             pixel = self.color_wheel_pil.getpixel((x, y))
@@ -565,20 +522,17 @@ class EclipseApp:
             pass
 
     def set_color(self, color):
-        """Set current color and update preview."""
         self.current_color = color
         self.color_preview.configure(fg_color=self.current_color)
         if not self.color_picker_open:
             self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def apply_hex_color(self):
-        """Apply color from hex input."""
         hex_color = self.hex_entry.get().strip()
         if len(hex_color) == 7 and hex_color.startswith("#") and all(c in "0123456789ABCDEFabcdef" for c in hex_color[1:]):
             self.set_color(hex_color)
 
     def prompt_brush_size(self):
-        """Prompt user to enter brush size."""
         size = simpledialog.askinteger("Brush Size", "Enter brush size (1-50):", parent=self.root, minvalue=1, maxvalue=50)
         if size is not None:
             self.brush_size = size
@@ -586,16 +540,13 @@ class EclipseApp:
             self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()} (Size: {self.brush_size})", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def update_brush_size(self, value):
-        """Update brush size."""
         self.brush_size = int(value)
         self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()} (Size: {self.brush_size})", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def get_canvas_details(self):
-        """Generate canvas details text."""
         return f"Image: {self.file_name}\nPath: {self.file_path}\nLast Edited: {self.last_edited}\nSize: {self.file_size}"
 
     def update_file_details(self, file_path):
-        """Update file metadata."""
         self.current_file = file_path
         self.file_name = os.path.basename(file_path)
         self.file_path = file_path
@@ -610,7 +561,6 @@ class EclipseApp:
         self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def new_file(self):
-        """Clear canvas and commands."""
         if self.canvas:
             self.canvas.delete("all")
             self.commands = []
@@ -625,7 +575,6 @@ class EclipseApp:
             self.update_discord_presence(f"Drawing on {self.file_name}", f"Using {self.current_tool.capitalize()}", self.current_tool, f"Eclipse - {self.current_tool.capitalize()}")
 
     def save_file(self):
-        """Save drawing commands as .ecp (JSON)."""
         if not self.canvas:
             return
         file_path = filedialog.asksaveasfilename(
@@ -642,7 +591,6 @@ class EclipseApp:
                 messagebox.showerror("Error", f"Save error: {e}")
 
     def open_file(self):
-        """Open .ecp (JSON) or .png file."""
         file_path = filedialog.askopenfilename(
             filetypes=[("Eclipse files", "*.ecp"), ("PNG files", "*.png"), ("All files", "*.*")]
         )
@@ -672,7 +620,6 @@ class EclipseApp:
                 messagebox.showerror("Error", f"Open error: {e}")
 
     def export_to_png(self):
-        """Export canvas to PNG."""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")]
         )
@@ -686,7 +633,6 @@ class EclipseApp:
                 messagebox.showerror("Error", f"Export PNG error: {e}")
 
     def get_composite(self):
-        """Get composite PIL image of canvas (vectors over base image or white)."""
         if not self.pil_image:
             self.pil_image = Image.new("RGBA", (800, 600), (255, 255, 255, 255))
         
@@ -723,7 +669,6 @@ class EclipseApp:
         return self.pil_image
 
     def replay_commands(self):
-        """Replay drawing commands on canvas."""
         try:
             for cmd in self.commands:
                 if not isinstance(cmd, dict) or 'type' not in cmd or 'coords' not in cmd:
